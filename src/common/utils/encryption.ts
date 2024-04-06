@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import * as fs from 'fs'
+import * as fs from 'fs';
 export const encrypt = (data: string) => {
   const cipher = crypto.createCipheriv(
     'aes-256-cbc',
@@ -23,23 +23,19 @@ export const decrypt = (data: string) => {
   return decryptedData;
 };
 
-
-
-
-
 // Generate RSA key pair
-const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa',{
+const { privateKey } = crypto.generateKeyPairSync('rsa', {
   modulusLength: 2048, // Key size
   publicKeyEncoding: {
     type: 'pkcs1', // Public key format
-    format: 'pem'  // Encoding
+    format: 'pem', // Encoding
   },
   privateKeyEncoding: {
     type: 'pkcs1', // Private key format
     format: 'pem', // Encoding
     cipher: 'aes-256-cbc', // Encryption algorithm
-    passphrase: 'topSecret' // Passphrase for encrypting the private key (optional)
-  }
+    passphrase: 'topSecret', // Passphrase for encrypting the private key (optional)
+  },
 });
 
 fs.writeFileSync('src/config/private.pem', privateKey);

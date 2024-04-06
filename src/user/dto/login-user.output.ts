@@ -1,4 +1,3 @@
-
 export class LoginUserOutput {
   jwtToken: string;
 

@@ -1,6 +1,3 @@
-
-
-
 export class RefreshTokenResponse {
   accessToken: string;
 

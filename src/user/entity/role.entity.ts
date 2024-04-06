@@ -1,4 +1,4 @@
-import { Schema as MongooseSchema, Types } from 'mongoose';
+import { Schema as MongooseSchema } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema()
@@ -15,4 +15,3 @@ export class Role {
 export type RoleDocument = Document & Role;
 
 export const RoleSchema = SchemaFactory.createForClass(Role);
-

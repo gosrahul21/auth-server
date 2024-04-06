@@ -10,7 +10,7 @@ import { User, UserDocument } from './entity/user.entity';
 import { throwErrorMessage } from '../common/utils/throwErrorMessage';
 import { I18nService } from 'nestjs-i18n';
 import { ConfigService } from '@nestjs/config';
-import { createErrorLog, createInfoLog } from '../common/utils/logger';
+import { createErrorLog } from '../common/utils/logger';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
@@ -26,17 +26,17 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly authService: PasswordService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async loginWithEmailAndPassword(loginUserDto: LoginUserDto) {
     try {
       // check if the value is email or userName, search for email if email or passowrd
       let filterQuery;
       if (loginUserDto.emailOrUserName.includes('@')) {
-        filterQuery = { email: loginUserDto.emailOrUserName }
-        console.log(filterQuery)
+        filterQuery = { email: loginUserDto.emailOrUserName };
+        console.log(filterQuery);
       } else {
-        filterQuery = { userName: loginUserDto.emailOrUserName }
+        filterQuery = { userName: loginUserDto.emailOrUserName };
       }
 
       const user = await this.userModel.findOne(filterQuery).populate('roles');
@@ -46,11 +46,16 @@ export class AuthService {
           'login-service',
           filterQuery,
         );
-        throw new NotFoundException(this.i18nService.t('user.USER_NOT_AVAILABLE'));
+        throw new NotFoundException(
+          this.i18nService.t('user.USER_NOT_AVAILABLE'),
+        );
       }
-      // check if the password is valid 
+      // check if the password is valid
 
-      const isEqual = await this.authService.comparePasswords(loginUserDto.password, user.password);
+      const isEqual = await this.authService.comparePasswords(
+        loginUserDto.password,
+        user.password,
+      );
       if (!isEqual) {
         createErrorLog(
           `${this.i18nService.t('user.Invalid_pin')}`,
@@ -65,9 +70,8 @@ export class AuthService {
           userName: user.userName,
           role: user.roles,
         };
-        const { accessToken, refreshToken } = this.tokenService.generateAuthToken(
-          payload,
-        );
+        const { accessToken, refreshToken } =
+          this.tokenService.generateAuthToken(payload);
         return { accessToken, refreshToken };
       }
     } catch (error) {
@@ -89,8 +93,10 @@ export class AuthService {
         email: userData.email,
       });
       if (!user) {
-        // create password hash 
-        const password = await this.authService.createPasswordHash(userData.password)
+        // create password hash
+        const password = await this.authService.createPasswordHash(
+          userData.password,
+        );
         const newUser = new this.userModel({
           ...userData,
           password,
@@ -122,7 +128,9 @@ export class AuthService {
 
   async getUserById(userId: Types.ObjectId) {
     try {
-      const user = await this.userModel.findById(userId, { password: 0 }).lean();
+      const user = await this.userModel
+        .findById(userId, { password: 0 })
+        .lean();
       if (!user) throw new Error(this.i18nService.t('user.USER_NOT_AVAILABLE'));
       return user;
     } catch (error) {
@@ -165,12 +173,14 @@ export class AuthService {
       // const decodedToken = await this.jwtService.verify(token, { secret: process.env.AUTH_SECRET_KEY! });
       const decodedToken = await this.tokenService.validateToken(token);
       const email = decodedToken.email;
-      const user = this.userModel.findOne({
-        email
-      }).select(['-password']).lean();
+      const user = this.userModel
+        .findOne({
+          email,
+        })
+        .select(['-password'])
+        .lean();
       if (!user)
-        throw new NotFoundException(
-          this.i18nService.t('user.NOT_FOUND'));
+        throw new NotFoundException(this.i18nService.t('user.NOT_FOUND'));
       return user;
     } catch (error) {
       throw new UnauthorizedException(
@@ -179,9 +189,14 @@ export class AuthService {
     }
   }
 
-  async updateUser(userId: Types.ObjectId, updateUserData: UpdateQuery<UserDocument>) {
+  async updateUser(
+    userId: Types.ObjectId,
+    updateUserData: UpdateQuery<UserDocument>,
+  ) {
     try {
-      const user = await this.userModel.findByIdAndUpdate(userId, updateUserData, { new: true }).lean();
+      const user = await this.userModel
+        .findByIdAndUpdate(userId, updateUserData, { new: true })
+        .lean();
       if (!user)
         throw new NotFoundException(this.i18nService.t('user.USER_NOT_FOUND'));
 
@@ -200,16 +215,18 @@ export class AuthService {
     const sortByDate = getUserDto.sortByDate;
     delete getUserDto.sortByDate;
     const filterQuery: FilterQuery<UserDocument> = getUserDto;
-    const sortQuery: any = sortByDate ? { createdAt: sortByDate === SortType.ASCENDING ? 1 : -1 } : { createdAt: -1 };
+    const sortQuery: any = sortByDate
+      ? { createdAt: sortByDate === SortType.ASCENDING ? 1 : -1 }
+      : { createdAt: -1 };
     const count = await this.userModel.find(filterQuery).countDocuments();
     const users = await this.userModel.aggregate([
       {
-        $match: filterQuery
+        $match: filterQuery,
       },
       {
         $project: {
           // Exclude the password field from user documents
-          'password': 0,
+          password: 0,
         },
       },
       {
@@ -221,11 +238,10 @@ export class AuthService {
       {
         $limit: parseInt(limit as any),
       },
-    ])
+    ]);
     return {
       users,
-      totalCount: count
-    }
+      totalCount: count,
+    };
   }
-
 }

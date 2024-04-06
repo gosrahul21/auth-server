@@ -1,10 +1,10 @@
-import { IsEnum, IsMongoId } from "class-validator";
-import { UserStatus } from "src/common/enum/user-status.enum";
+import { IsEnum, IsMongoId } from 'class-validator';
+import { UserStatus } from 'src/common/enum/user-status.enum';
 
 export class ApproveUserDto {
-    @IsMongoId()
-    userId: string;
+  @IsMongoId()
+  userId: string;
 
-    @IsEnum(UserStatus)
-    status: UserStatus; 
+  @IsEnum(UserStatus)
+  status: UserStatus;
 }

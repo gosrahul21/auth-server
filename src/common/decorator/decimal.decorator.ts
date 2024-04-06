@@ -9,6 +9,6 @@ export const IsValidDecimal = (i18nMessage = 'validation.INVALID_INPUT') => {
     Min(1.0),
     IsNotEmpty({
       message: i18nValidationMessage(i18nMessage as any),
-    }), 
+    }),
   );
 };

@@ -23,9 +23,9 @@ import { JwtModule } from '@nestjs/jwt';
       secret: process.env.JWT_SECRET_PRIVATE_KEY,
       signOptions: { expiresIn: process.env.EXPIRE_TIME },
     }),
-    AuthModule
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

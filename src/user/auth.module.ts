@@ -36,8 +36,8 @@ import { PasswordService } from './services/password.service';
     RoleService,
     RoleSeed,
     TokenService,
-    PasswordService
+    PasswordService,
   ],
   exports: [AuthService, RoleService, RoleSeed],
 })
-export class AuthModule { }
+export class AuthModule {}

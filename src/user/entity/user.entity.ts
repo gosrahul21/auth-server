@@ -10,10 +10,10 @@ export class User {
   @Prop({ required: true, index: true })
   userName?: string;
 
-  @Prop({ required: false,  })
+  @Prop({ required: false })
   firstName?: string;
 
-  @Prop({ required: false,  })
+  @Prop({ required: false })
   lastName?: string;
 
   @Prop({ required: true, index: true })

@@ -1,7 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { I18nValidationExceptionFilter, i18nValidationErrorFactory } from 'nestjs-i18n';
+import {
+  I18nValidationExceptionFilter,
+  i18nValidationErrorFactory,
+} from 'nestjs-i18n';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,6 +18,5 @@ async function bootstrap() {
     }),
   );
   await app.listen(3000);
-
 }
 bootstrap();
