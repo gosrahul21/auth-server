@@ -4,7 +4,8 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "assets": [
-      { "include": "translation/**/*", "watchAssets": true }
+      { "include": "translation/**/*", "watchAssets": true },
+      { "include": "config/**/*", "watchAssets": true }
     ]
   }
 }
