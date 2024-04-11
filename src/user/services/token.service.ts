@@ -2,6 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as fs from 'fs';
+import * as path from 'path'
 
 @Injectable()
 export class TokenService {
@@ -11,8 +12,8 @@ export class TokenService {
     private readonly i18nService: I18nService,
     private readonly jwtService: JwtService,
   ) {
-    this.publicKey = fs.readFileSync('src/config/public.pem', 'utf-8');
-    this.privateKey = fs.readFileSync('src/config/private.pem', 'utf8');
+    this.publicKey = fs.readFileSync(path.join(__dirname, '../../config/public.pem'), 'utf-8');
+    this.privateKey = fs.readFileSync(path.join(__dirname, '../../config/private.pem'), 'utf8');
   }
 
   generateAuthToken(payload: any) {
