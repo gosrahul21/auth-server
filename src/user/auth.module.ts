@@ -12,6 +12,8 @@ import { RoleSeed } from './seeds/role.seed';
 import { HttpModule } from '@nestjs/axios';
 import { TokenService } from './services/token.service';
 import { PasswordService } from './services/password.service';
+import { PassportModule } from '@nestjs/passport';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [
@@ -29,6 +31,7 @@ import { PasswordService } from './services/password.service';
     ConfigModule,
     HttpModule,
     JwtModule,
+    PassportModule.register({ defaultStrategy: 'google' }),
   ],
   controllers: [AuthController],
   providers: [
@@ -37,6 +40,7 @@ import { PasswordService } from './services/password.service';
     RoleSeed,
     TokenService,
     PasswordService,
+    GoogleStrategy,
   ],
   exports: [AuthService, RoleService, RoleSeed],
 })

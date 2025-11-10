@@ -11,12 +11,14 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { GoogleTokenDto } from './dto/google-token.dto';
 import { Request } from 'express';
 import { I18nService } from 'nestjs-i18n';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { UserRoles } from 'src/common/enum/userroles.enum';
 import { Types } from 'mongoose';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { GoogleAuthGuard } from 'src/guards/google-auth.guard';
 import { GetUserDto } from './dto/get-user.dto';
 import { AuthService } from './auth.service';
 
@@ -116,5 +118,26 @@ export class AuthController {
   // @Roles(UserRoles.ADMIN)
   async getUserById(@Param('userId') userId: string) {
     return this.userService.getUserById(new Types.ObjectId(userId));
+  }
+
+  @Get('/google/login')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth() {
+    // This route initiates the Google OAuth flow
+    // The guard will redirect to Google
+  }
+
+  @Get('/google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuthRedirect(@Req() req: any) {
+    // Handle the Google OAuth callback
+    return this.userService.googleLogin(req.user);
+  }
+
+  @Post('/google/token')
+  async googleTokenLogin(@Body() googleTokenDto: GoogleTokenDto) {
+    // This endpoint accepts a Google ID token directly
+    // Useful for mobile apps and API testing with Postman
+    return this.userService.googleTokenLogin(googleTokenDto.token);
   }
 }

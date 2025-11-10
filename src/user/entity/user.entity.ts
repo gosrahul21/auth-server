@@ -19,8 +19,14 @@ export class User {
   @Prop({ required: true, index: true })
   email?: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   password?: string;
+
+  @Prop({ required: false, index: true })
+  googleId?: string;
+
+  @Prop({ required: false })
+  picture?: string;
 
   @Prop({
     type: Array<Types.ObjectId>,
