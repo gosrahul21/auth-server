@@ -55,7 +55,6 @@ export class AuthController {
     );
     this.sendCookie(res, 'refreshToken', loginResponse.refreshToken);
     return loginResponse;
-    return this.userService.loginWithEmailAndPassword(loginUserDto);
   }
 
   @Get('/')
@@ -139,9 +138,18 @@ export class AuthController {
 
   @Get('/google/callback')
   @UseGuards(GoogleAuthGuard)
-  async googleAuthRedirect(@Req() req: any) {
+  async googleAuthRedirect(@Req() req: any, @Res({ passthrough: true }) res) {
     // Handle the Google OAuth callback
-    return this.userService.googleLogin(req.user);
+    const loginResponse = await this.userService.googleLogin(req.user);
+    this.sendCookie(res, 'refreshToken', loginResponse.refreshToken);
+
+    // Redirect to frontend with token in URL or return JSON
+    // Option 1: Return JSON (for API testing)
+    return loginResponse;
+
+    // Option 2: Redirect to frontend with token (uncomment if needed)
+    // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // return res.redirect(`${frontendUrl}/auth/callback?token=${loginResponse.accessToken}`);
   }
 
   @Post('/google/token')
@@ -161,10 +169,10 @@ export class AuthController {
   sendCookie(res: any, cookieName: string, cookieValue: string) {
     res.cookie(cookieName, cookieValue, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/auth/google/token',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === 'production', // true in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/', // Changed from '/auth/google/token' to '/' so cookie works across all routes
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }
 }
