@@ -9,7 +9,13 @@ import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  app.enableCors({
+    origin: [
+      'http://localhost:5173',
+      'https://chat-agent-ui-beryl.vercel.app/',
+    ], // frontend
+    credentials: true,
+  });
   app.use(cookieParser());
   app.useGlobalFilters(new I18nValidationExceptionFilter());
   app.useGlobalPipes(
