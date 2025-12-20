@@ -6,6 +6,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -45,7 +46,15 @@ export class AuthController {
   }
 
   @Post('/login')
-  loginUser(@Body() loginUserDto: LoginUserDto) {
+  async loginUser(
+    @Body() loginUserDto: LoginUserDto,
+    @Res({ passthrough: true }) res,
+  ) {
+    const loginResponse = await this.userService.loginWithEmailAndPassword(
+      loginUserDto,
+    );
+    this.sendCookie(res, 'refreshToken', loginResponse.refreshToken);
+    return loginResponse;
     return this.userService.loginWithEmailAndPassword(loginUserDto);
   }
 
@@ -96,7 +105,10 @@ export class AuthController {
   }
 
   @Get('/refreshSession')
-  async getRefreshToken(@Req() req: any): Promise<any> {
+  async getRefreshToken(
+    @Req() req: any,
+    @Res({ passthrough: true }) res,
+  ): Promise<any> {
     // get accesss to token
     // check the refresh token expiry
     // if refresh token is not expired then create login and refresh token
@@ -107,6 +119,7 @@ export class AuthController {
         this.i18nService.t('default.GUARD_TOKEN_REQUIRED'),
       );
     }
+    this.sendCookie(res, 'refreshToken', refreshToken);
     return await this.userService.refreshSession(refreshToken);
   }
 
@@ -132,9 +145,26 @@ export class AuthController {
   }
 
   @Post('/google/token')
-  async googleTokenLogin(@Body() googleTokenDto: GoogleTokenDto) {
+  async googleTokenLogin(
+    @Body() googleTokenDto: GoogleTokenDto,
+    @Res({ passthrough: true }) res,
+  ) {
     // This endpoint accepts a Google ID token directly
     // Useful for mobile apps and API testing with Postman
-    return this.userService.googleTokenLogin(googleTokenDto.token);
+    const loginResponse = await this.userService.googleTokenLogin(
+      googleTokenDto.token,
+    );
+    this.sendCookie(res, 'refreshToken', loginResponse.refreshToken);
+    return loginResponse;
+  }
+
+  sendCookie(res: any, cookieName: string, cookieValue: string) {
+    res.cookie(cookieName, cookieValue, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/auth/google/token',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
   }
 }
