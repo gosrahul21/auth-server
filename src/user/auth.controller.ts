@@ -100,15 +100,12 @@ export class AuthController {
     // get accesss to token
     // check the refresh token expiry
     // if refresh token is not expired then create login and refresh token
-    let refreshToken = req.headers['refresh-token'];
+    const refreshToken = req.cookies['refreshToken'];
+
     if (refreshToken == null) {
       throw new UnauthorizedException(
         this.i18nService.t('default.GUARD_TOKEN_REQUIRED'),
       );
-    }
-
-    if (refreshToken.startsWith('Bearer ')) {
-      refreshToken = refreshToken.slice(7, refreshToken.length);
     }
     return await this.userService.refreshSession(refreshToken);
   }

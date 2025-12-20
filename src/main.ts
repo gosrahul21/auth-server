@@ -5,10 +5,12 @@ import {
   I18nValidationExceptionFilter,
   i18nValidationErrorFactory,
 } from 'nestjs-i18n';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
+  app.use(cookieParser());
   app.useGlobalFilters(new I18nValidationExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
