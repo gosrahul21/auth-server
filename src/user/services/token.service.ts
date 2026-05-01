@@ -1,35 +1,27 @@
 import { JwtService } from '@nestjs/jwt';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import * as fs from 'fs';
-import * as path from 'path'
 
 @Injectable()
 export class TokenService {
-  private readonly publicKey: string;
-  private readonly privateKey: string;
+  private readonly jwtSecret: string;
   constructor(
     private readonly i18nService: I18nService,
     private readonly jwtService: JwtService,
   ) {
-    this.publicKey = fs.readFileSync(path.join(__dirname, '../../config/public.pem'), 'utf-8');
-    this.privateKey = fs.readFileSync(path.join(__dirname, '../../config/private.pem'), 'utf8');
+    this.jwtSecret = process.env.JWT_SECRET || 'super-secret-key-123';
   }
 
   generateAuthToken(payload: any) {
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.privateKey,
-      // privateKey,
-      algorithm: 'RS256',
+      secret: this.jwtSecret,
+      algorithm: 'HS256',
       expiresIn: process.env.LINK_TOKEN_EXPIRY || '30m',
-      allowInsecureKeySizes: true,
     });
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.privateKey,
-      // privateKey,
+      secret: this.jwtSecret,
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '6h',
-      algorithm: 'RS256',
-      allowInsecureKeySizes: true,
+      algorithm: 'HS256',
     });
     return {
       accessToken,
@@ -37,9 +29,9 @@ export class TokenService {
     };
   }
 
-  validateToken(token) {
+  validateToken(token: string) {
     const result = this.jwtService.verify(token, {
-      publicKey: this.publicKey,
+      secret: this.jwtSecret,
     });
     return result;
   }
