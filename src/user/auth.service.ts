@@ -72,6 +72,9 @@ export class AuthService {
           email: user.email,
           userName: user.userName,
           role: user.roles,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          picture: user.picture,
         };
         const { accessToken, refreshToken } =
           this.tokenService.generateAuthToken(payload);
@@ -158,6 +161,9 @@ export class AuthService {
         userId: result.userId,
         email: result.email,
         role: result.role,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        picture: result.picture,
       };
       return this.tokenService.generateAuthToken(payload);
     } catch (error) {
@@ -291,6 +297,9 @@ export class AuthService {
         email: user.email,
         userName: user.userName,
         role: user.roles,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        picture: user.picture,
       };
       const { accessToken, refreshToken } =
         this.tokenService.generateAuthToken(payload);
@@ -298,15 +307,6 @@ export class AuthService {
       return {
         accessToken,
         refreshToken,
-        user: {
-          _id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          userName: user.userName,
-          picture: user.picture,
-          roles: user.roles,
-        },
       };
     } catch (error) {
       createErrorLog(`Error in Google login`, 'googleLogin', {

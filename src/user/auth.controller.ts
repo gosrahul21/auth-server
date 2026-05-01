@@ -6,6 +6,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -45,8 +46,15 @@ export class AuthController {
   }
 
   @Post('/login')
-  loginUser(@Body() loginUserDto: LoginUserDto) {
-    return this.userService.loginWithEmailAndPassword(loginUserDto);
+  async loginUser(
+    @Body() loginUserDto: LoginUserDto,
+    @Res({ passthrough: true }) res,
+  ) {
+    const loginResponse = await this.userService.loginWithEmailAndPassword(
+      loginUserDto,
+    );
+    this.sendCookie(res, 'refreshToken', loginResponse.refreshToken);
+    return loginResponse;
   }
 
   @Get('/')
@@ -96,20 +104,21 @@ export class AuthController {
   }
 
   @Get('/refreshSession')
-  async getRefreshToken(@Req() req: any): Promise<any> {
+  async getRefreshToken(
+    @Req() req: any,
+    @Res({ passthrough: true }) res,
+  ): Promise<any> {
     // get accesss to token
     // check the refresh token expiry
     // if refresh token is not expired then create login and refresh token
-    let refreshToken = req.headers['refresh-token'];
+    const refreshToken = req.cookies['refreshToken'];
+
     if (refreshToken == null) {
       throw new UnauthorizedException(
         this.i18nService.t('default.GUARD_TOKEN_REQUIRED'),
       );
     }
-
-    if (refreshToken.startsWith('Bearer ')) {
-      refreshToken = refreshToken.slice(7, refreshToken.length);
-    }
+    this.sendCookie(res, 'refreshToken', refreshToken);
     return await this.userService.refreshSession(refreshToken);
   }
 
@@ -129,15 +138,41 @@ export class AuthController {
 
   @Get('/google/callback')
   @UseGuards(GoogleAuthGuard)
-  async googleAuthRedirect(@Req() req: any) {
+  async googleAuthRedirect(@Req() req: any, @Res({ passthrough: true }) res) {
     // Handle the Google OAuth callback
-    return this.userService.googleLogin(req.user);
+    const loginResponse = await this.userService.googleLogin(req.user);
+    this.sendCookie(res, 'refreshToken', loginResponse.refreshToken);
+
+    // Redirect to frontend with token in URL or return JSON
+    // Option 1: Return JSON (for API testing)
+    return loginResponse;
+
+    // Option 2: Redirect to frontend with token (uncomment if needed)
+    // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // return res.redirect(`${frontendUrl}/auth/callback?token=${loginResponse.accessToken}`);
   }
 
   @Post('/google/token')
-  async googleTokenLogin(@Body() googleTokenDto: GoogleTokenDto) {
+  async googleTokenLogin(
+    @Body() googleTokenDto: GoogleTokenDto,
+    @Res({ passthrough: true }) res,
+  ) {
     // This endpoint accepts a Google ID token directly
     // Useful for mobile apps and API testing with Postman
-    return this.userService.googleTokenLogin(googleTokenDto.token);
+    const loginResponse = await this.userService.googleTokenLogin(
+      googleTokenDto.token,
+    );
+    this.sendCookie(res, 'refreshToken', loginResponse.refreshToken);
+    return loginResponse;
+  }
+
+  sendCookie(res: any, cookieName: string, cookieValue: string) {
+    res.cookie(cookieName, cookieValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // true in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/', // Changed from '/auth/google/token' to '/' so cookie works across all routes
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
   }
 }
