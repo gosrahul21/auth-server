@@ -4,7 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   Unique,
+  ManyToOne,
+  JoinColumn
 } from 'typeorm';
+import { Application } from '../../application/entity/application.entity';
 
 @Entity()
 @Unique(['name', 'appId'])
@@ -14,6 +17,10 @@ export class Role {
 
   @Column({ nullable: true })
   appId: string;
+
+  @ManyToOne(() => Application, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'appId', referencedColumnName: 'appId' })
+  application: Application;
 
   @Column()
   name: string;

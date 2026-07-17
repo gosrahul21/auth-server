@@ -6,9 +6,12 @@ import {
   ManyToMany,
   JoinTable,
   Unique,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Role } from './role.entity';
 import { UserStatus } from 'src/common/enum/user-status.enum';
+import { Application } from '../../application/entity/application.entity';
 
 @Entity()
 @Unique(['email', 'appId'])
@@ -19,6 +22,10 @@ export class User {
 
   @Column({ nullable: true })
   appId: string;
+
+  @ManyToOne(() => Application, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'appId', referencedColumnName: 'appId' })
+  application: Application;
 
   @Column()
   userName: string;

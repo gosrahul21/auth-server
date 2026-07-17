@@ -32,4 +32,37 @@ export class RoleService {
     if (roleDetails) return roleDetails;
     throw new NotFoundException(this.i18nService.t('role.NOT_FOUND'));
   }
+
+  async getRolesByAppId(appId: string) {
+    return this.roleRepository.find({
+      where: { appId },
+      order: { createDate: 'ASC' },
+    });
+  }
+
+  async updateRole(roleId: string, appId: string, newName: string) {
+    const role = await this.roleRepository.findOne({
+      where: { id: roleId, appId },
+    });
+    
+    if (!role) {
+      throw new NotFoundException('Role not found for this application');
+    }
+    
+    role.name = newName;
+    return this.roleRepository.save(role);
+  }
+
+  async deleteRole(roleId: string, appId: string) {
+    const role = await this.roleRepository.findOne({
+      where: { id: roleId, appId },
+    });
+
+    if (!role) {
+      throw new NotFoundException('Role not found for this application');
+    }
+
+    await this.roleRepository.remove(role);
+    return { message: 'Role deleted successfully' };
+  }
 }

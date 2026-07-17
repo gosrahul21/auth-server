@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { Role } from './entity/role.entity';
 import { AuthController } from './auth.controller';
+import { RoleController } from './role.controller';
 import { AuthService } from './auth.service';
 import { RoleService } from './role.service';
 import { CommandModule } from 'nestjs-command';
@@ -26,7 +27,7 @@ import { ApplicationModule } from '../application/application.module';
     PassportModule.register({ defaultStrategy: 'google' }),
     forwardRef(() => ApplicationModule),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, RoleController],
   providers: [
     AuthService,
     RoleService,

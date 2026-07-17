@@ -4,9 +4,14 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Unique,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { User } from '../../user/entity/user.entity';
 
 @Entity()
+@Unique(['name', 'userId'])
 export class Application {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -14,7 +19,7 @@ export class Application {
   @Column()
   name: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true})
   appId: string;
 
   @Column('text')
@@ -34,6 +39,10 @@ export class Application {
 
   @Column()
   userId: string; // The developer who owns this app
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId', referencedColumnName: 'id' })
+  user: User;
 
   @CreateDateColumn()
   createDate: Date;

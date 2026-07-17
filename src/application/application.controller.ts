@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { ApplicationService } from './application.service';
 import { AuthGuard } from '../guards/auth.guard';
 
@@ -24,5 +24,12 @@ export class ApplicationController {
   async getJwks(@Param('appId') appId: string) {
     // This endpoint is public so client backends can fetch the public key
     return this.appService.getJwks(appId);
+  }
+
+  @Delete(':appId')
+  @UseGuards(AuthGuard)
+  async deleteApplication(@Req() req: any, @Param('appId') appId: string) {
+    const userId = req.user.userId || req.user.id;
+    return this.appService.deleteApplication(appId, userId);
   }
 }

@@ -115,9 +115,11 @@
 
             <!-- Created App Result (hidden initially) -->
             <div id="app-result-section" class="result-section hidden">
-                <div class="success-banner">
-                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    Application Created Successfully!
+                <div class="result-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h3 id="result-app-name">Application Details</h3>
+                    <button id="delete-app-btn" class="btn-ghost" style="color: var(--error); border-color: rgba(239, 68, 68, 0.3);">
+                        Delete App
+                    </button>
                 </div>
                 
                 <div class="info-card">
@@ -139,6 +141,22 @@
                 <div class="info-card">
                     <label>JWKS Endpoint</label>
                     <a id="display-jwks" href="#" target="_blank"></a>
+                </div>
+
+                <!-- Roles Management Section -->
+                <div class="roles-section">
+                    <h3 class="integration-title">Role Management</h3>
+                    <div class="roles-container" id="roles-container">
+                        <div class="spinner hidden" id="roles-loading"></div>
+                    </div>
+                    
+                    <form id="add-role-form" class="add-role-form">
+                        <input type="text" id="new-role-name" placeholder="New role name (e.g. editor)" required>
+                        <button type="submit" class="btn-primary small-btn" id="add-role-btn">
+                            <span>Add Role</span>
+                            <div class="spinner hidden"></div>
+                        </button>
+                    </form>
                 </div>
 
                 <h3 class="integration-title">Integration Code Snippet</h3>

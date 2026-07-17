@@ -62,6 +62,15 @@ export class ApplicationService {
     return app;
   }
 
+  async deleteApplication(appId: string, userId: string) {
+    const app = await this.getApplicationByAppId(appId);
+    if (app.userId !== userId) {
+      throw new UnauthorizedException('You can only delete applications you own');
+    }
+    await this.appRepository.remove(app);
+    return { message: 'Application deleted successfully' };
+  }
+
   async getApplicationPrivateKey(appId: string) {
     const app = await this.getApplicationByAppId(appId);
     return app.privateKey;

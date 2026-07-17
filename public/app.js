@@ -1,5 +1,6 @@
 const API_BASE = 'http://localhost:3000';
 let currentToken = null;
+let currentAppId = null;
 
 // DOM Elements
 const loginView = document.getElementById('login-view');
@@ -9,6 +10,11 @@ const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const createAppForm = document.getElementById('create-app-form');
 const logoutBtn = document.getElementById('logout-btn');
+const deleteAppBtn = document.getElementById('delete-app-btn');
+const addRoleForm = document.getElementById('add-role-form');
+const rolesContainer = document.getElementById('roles-container');
+const addRoleBtnSpinner = document.querySelector('#add-role-btn .spinner');
+const addRoleBtnText = document.querySelector('#add-role-btn span');
 
 const loginBtnSpinner = document.querySelector('#login-btn .spinner');
 const loginBtnText = document.querySelector('#login-btn span');
@@ -30,6 +36,8 @@ loginForm.addEventListener('submit', handleLogin);
 signupForm.addEventListener('submit', handleSignup);
 createAppForm.addEventListener('submit', handleCreateApp);
 logoutBtn.addEventListener('click', handleLogout);
+deleteAppBtn.addEventListener('click', handleDeleteApp);
+addRoleForm.addEventListener('submit', handleAddRole);
 
 document.getElementById('show-signup').addEventListener('click', (e) => {
     e.preventDefault();
@@ -159,6 +167,7 @@ async function handleCreateApp(e) {
 
         displayAppDetails(appData);
         loadApplications(); // Refresh the list
+        document.getElementById('result-app-name').innerHTML = `<span style="color: var(--success)">✓ Created:</span> ${appName}`;
     } catch (err) {
         createError.textContent = err.message;
     } finally {
@@ -166,11 +175,38 @@ async function handleCreateApp(e) {
     }
 }
 
+async function handleDeleteApp() {
+    if (!currentAppId) return;
+    if (!confirm('Are you sure you want to delete this application? All its users and roles will be permanently deleted.')) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/applications/${currentAppId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${currentToken}`
+            }
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Failed to delete application');
+        }
+
+        appResultSection.classList.add('hidden');
+        currentAppId = null;
+        loadApplications();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
 function displayAppDetails(app) {
     const appId = app.appId;
+    currentAppId = appId;
     const publicKey = app.publicKey;
     const jwksUrl = `${API_BASE}/applications/${appId}/.well-known/jwks.json`;
 
+    document.getElementById('result-app-name').textContent = app.name;
     document.getElementById('display-app-id').textContent = appId;
     document.getElementById('display-public-key').textContent = publicKey;
     
@@ -183,6 +219,115 @@ function displayAppDetails(app) {
     });
 
     appResultSection.classList.remove('hidden');
+    loadRoles(appId);
+}
+
+// --- ROLES MANAGEMENT ---
+
+async function loadRoles(appId) {
+    rolesContainer.innerHTML = '<div class="spinner" id="roles-loading"></div>';
+    try {
+        const res = await fetch(`${API_BASE}/applications/${appId}/roles`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+        });
+        const roles = await res.json();
+        if (!res.ok) throw new Error('Failed to load roles');
+
+        rolesContainer.innerHTML = '';
+        if (roles.length === 0) {
+            rolesContainer.innerHTML = '<div class="empty-state">No roles found.</div>';
+            return;
+        }
+
+        roles.forEach(role => {
+            const el = document.createElement('div');
+            el.className = 'role-item';
+            el.innerHTML = `
+                <input type="text" class="role-name-input" value="${role.name}" data-id="${role.id}" />
+                <div class="role-actions">
+                    <button class="role-btn update-btn" onclick="handleUpdateRole('${role.id}', this)">Save</button>
+                    <button class="role-btn delete" onclick="handleDeleteRole('${role.id}')">Delete</button>
+                </div>
+            `;
+            rolesContainer.appendChild(el);
+        });
+    } catch (err) {
+        rolesContainer.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+}
+
+async function handleAddRole(e) {
+    e.preventDefault();
+    if (!currentAppId) return;
+    const nameInput = document.getElementById('new-role-name');
+    const name = nameInput.value;
+
+    setLoading(addRoleBtnSpinner, addRoleBtnText, true);
+
+    try {
+        const res = await fetch(`${API_BASE}/applications/${currentAppId}/roles`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${currentToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name })
+        });
+        if (!res.ok) throw new Error('Failed to create role');
+        
+        nameInput.value = '';
+        loadRoles(currentAppId);
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        setLoading(addRoleBtnSpinner, addRoleBtnText, false);
+    }
+}
+
+async function handleUpdateRole(roleId, btnElement) {
+    if (!currentAppId) return;
+    const inputEl = btnElement.closest('.role-item').querySelector('.role-name-input');
+    const newName = inputEl.value;
+    
+    const originalText = btnElement.textContent;
+    btnElement.textContent = '...';
+
+    try {
+        const res = await fetch(`${API_BASE}/applications/${currentAppId}/roles/${roleId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${currentToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: newName })
+        });
+        if (!res.ok) throw new Error('Failed to update role');
+        
+        btnElement.textContent = 'Saved!';
+        setTimeout(() => btnElement.textContent = originalText, 1500);
+    } catch (err) {
+        alert(err.message);
+        btnElement.textContent = originalText;
+    }
+}
+
+async function handleDeleteRole(roleId) {
+    if (!currentAppId) return;
+    if (!confirm('Are you sure you want to delete this role?')) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/applications/${currentAppId}/roles/${roleId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${currentToken}`
+            }
+        });
+        if (!res.ok) throw new Error('Failed to delete role');
+        
+        loadRoles(currentAppId);
+    } catch (err) {
+        alert(err.message);
+    }
 }
 
 async function loadApplications() {
