@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Server Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Background Animated Mesh Gradient -->
+    <div class="mesh-bg"></div>
+
+    <main class="container">
+        
+        <!-- LOGIN VIEW -->
+        <div id="login-view" class="glass-panel active">
+            <div class="brand">
+                <div class="logo-circle"></div>
+                <h2>Auth Server</h2>
+            </div>
+            <p class="subtitle">Enter your global admin credentials</p>
+            
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="email">Email or Username</label>
+                    <input type="text" id="email" required placeholder="admin@example.com">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary" id="login-btn">
+                    <span>Sign In</span>
+                    <div class="spinner hidden"></div>
+                </button>
+                <div class="toggle-text">
+                    Don't have an account? <a href="#" id="show-signup">Sign up</a>
+                </div>
+                <div id="login-error" class="error-msg"></div>
+            </form>
+        </div>
+
+        <!-- SIGNUP VIEW -->
+        <div id="signup-view" class="glass-panel hidden">
+            <div class="brand">
+                <div class="logo-circle"></div>
+                <h2>Create Account</h2>
+            </div>
+            <p class="subtitle">Register a new global admin</p>
+            
+            <form id="signup-form">
+                <div class="input-group row-flex">
+                    <div style="flex: 1">
+                        <label for="signup-first-name">First Name</label>
+                        <input type="text" id="signup-first-name" style="width: 100%" required placeholder="John">
+                    </div>
+                    <div style="flex: 1; margin-left: 10px;">
+                        <label for="signup-last-name">Last Name</label>
+                        <input type="text" id="signup-last-name" style="width: 100%" required placeholder="Doe">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="signup-username">Username</label>
+                    <input type="text" id="signup-username" required placeholder="johndoe">
+                </div>
+                <div class="input-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" required placeholder="john@example.com">
+                </div>
+                <div class="input-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary" id="signup-btn">
+                    <span>Sign Up</span>
+                    <div class="spinner hidden"></div>
+                </button>
+                <div class="toggle-text">
+                    Already have an account? <a href="#" id="show-login">Log in</a>
+                </div>
+                <div id="signup-error" class="error-msg"></div>
+            </form>
+        </div>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboard-view" class="glass-panel hidden">
+            <header class="dashboard-header">
+                <h2>Applications</h2>
+                <button id="logout-btn" class="btn-ghost">Logout</button>
+            </header>
+
+            <!-- Existing Apps Section -->
+            <div class="existing-apps-section">
+                <h3>Your Applications</h3>
+                <div id="apps-list" class="apps-grid">
+                    <div class="spinner hidden" id="apps-loading"></div>
+                </div>
+            </div>
+
+            <!-- Create App Form -->
+            <div class="create-app-section">
+                <h3>Create New Application</h3>
+                <form id="create-app-form">
+                    <div class="input-group row-flex">
+                        <input type="text" id="app-name" required placeholder="My Awesome App">
+                        <button type="submit" class="btn-primary small-btn" id="create-btn">
+                            <span>Create</span>
+                            <div class="spinner hidden"></div>
+                        </button>
+                    </div>
+                    <div id="create-error" class="error-msg"></div>
+                </form>
+            </div>
+
+            <!-- Created App Result (hidden initially) -->
+            <div id="app-result-section" class="result-section hidden">
+                <div class="success-banner">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Application Created Successfully!
+                </div>
+                
+                <div class="info-card">
+                    <label>App ID (Tenant ID)</label>
+                    <div class="copy-box">
+                        <code id="display-app-id"></code>
+                        <button class="copy-btn" onclick="copyToClipboard('display-app-id')">Copy</button>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <label>Public Key (PEM)</label>
+                    <div class="copy-box multi-line">
+                        <code id="display-public-key"></code>
+                        <button class="copy-btn" onclick="copyToClipboard('display-public-key')">Copy</button>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <label>JWKS Endpoint</label>
+                    <a id="display-jwks" href="#" target="_blank"></a>
+                </div>
+
+                <h3 class="integration-title">Integration Code Snippet</h3>
+                <div class="tabs">
+                    <button class="tab active" data-target="node">Node.js</button>
+                    <button class="tab" data-target="python">Python</button>
+                </div>
+                
+                <div class="tab-content active" id="tab-node">
+                    <div class="copy-box multi-line code-snippet">
+<pre><code>const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
+
+const client = jwksClient({
+  jwksUri: '<span class="dyn-jwks">http://localhost:3000/applications/.../.well-known/jwks.json</span>'
+});
+
+function getKey(header, callback){
+  client.getSigningKey(header.kid, function(err, key) {
+    const signingKey = key.publicKey || key.rsaPublicKey;
+    callback(null, signingKey);
+  });
+}
+
+// Verify a token
+jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, decoded) => {
+  console.log(decoded);
+});
+</code></pre>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="tab-python">
+                    <div class="copy-box multi-line code-snippet">
+<pre><code>import jwt
+from jwt import PyJWKClient
+
+url = "<span class="dyn-jwks">http://localhost:3000/applications/.../.well-known/jwks.json</span>"
+jwks_client = PyJWKClient(url)
+
+# Verify a token
+signing_key = jwks_client.get_signing_key_from_jwt(token)
+data = jwt.decode(
+    token,
+    signing_key.key,
+    algorithms=["RS256"],
+    audience="my_audience",
+)
+print(data)
+</code></pre>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

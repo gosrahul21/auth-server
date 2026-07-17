@@ -4,6 +4,8 @@ if (!buffer.SlowBuffer) {
 }
 
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import {
@@ -13,11 +15,13 @@ import {
 import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   // CORS configuration for credentials (cookies)
   app.enableCors({
-    origin: ['http://localhost:5173', 'https://chat-agent-ui-beryl.vercel.app'],
+    origin: ['http://localhost:3000', 'https://chat-agent-ui-beryl.vercel.app'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [

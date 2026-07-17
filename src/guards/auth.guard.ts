@@ -37,12 +37,13 @@ export class AuthGuard implements CanActivate {
     let result;
     if (token) {
       try {
-        const cachedSession = await this.cacheManager.get(`session:${token}`);
-        if (!cachedSession) {
-          throw new UnauthorizedException('Session expired or invalid');
-        }
+        // const cachedSession = await this.cacheManager.get(`session:${token}`);
+        // if (!cachedSession) {
+        //   throw new UnauthorizedException('Session expired or invalid');
+        // }
         result = await this.tokenService.validateToken(token);
       } catch (error) {
+        console.log(error);
         throw new UnauthorizedException(
           this.i18nService.t('default.GUARD_TOKEN_INVALID'),
         );
