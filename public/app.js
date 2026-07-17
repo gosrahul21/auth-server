@@ -3,14 +3,20 @@ let currentToken = null;
 
 // DOM Elements
 const loginView = document.getElementById('login-view');
+const signupView = document.getElementById('signup-view');
 const dashboardView = document.getElementById('dashboard-view');
 const loginForm = document.getElementById('login-form');
+const signupForm = document.getElementById('signup-form');
 const createAppForm = document.getElementById('create-app-form');
 const logoutBtn = document.getElementById('logout-btn');
 
 const loginBtnSpinner = document.querySelector('#login-btn .spinner');
 const loginBtnText = document.querySelector('#login-btn span');
 const loginError = document.getElementById('login-error');
+
+const signupBtnSpinner = document.querySelector('#signup-btn .spinner');
+const signupBtnText = document.querySelector('#signup-btn span');
+const signupError = document.getElementById('signup-error');
 
 const createBtnSpinner = document.querySelector('#create-btn .spinner');
 const createBtnText = document.querySelector('#create-btn span');
@@ -21,8 +27,29 @@ const appsLoading = document.getElementById('apps-loading');
 
 // Event Listeners
 loginForm.addEventListener('submit', handleLogin);
+signupForm.addEventListener('submit', handleSignup);
 createAppForm.addEventListener('submit', handleCreateApp);
 logoutBtn.addEventListener('click', handleLogout);
+
+document.getElementById('show-signup').addEventListener('click', (e) => {
+    e.preventDefault();
+    loginView.classList.remove('active');
+    setTimeout(() => {
+        loginView.classList.add('hidden');
+        signupView.classList.remove('hidden');
+        signupView.classList.add('active');
+    }, 400);
+});
+
+document.getElementById('show-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    signupView.classList.remove('active');
+    setTimeout(() => {
+        signupView.classList.add('hidden');
+        loginView.classList.remove('hidden');
+        loginView.classList.add('active');
+    }, 400);
+});
 
 // Tab Switching
 document.querySelectorAll('.tab').forEach(tab => {
@@ -63,6 +90,46 @@ async function handleLogin(e) {
         loginError.textContent = err.message;
     } finally {
         setLoading(loginBtnSpinner, loginBtnText, false);
+    }
+}
+
+async function handleSignup(e) {
+    e.preventDefault();
+    const firstName = document.getElementById('signup-first-name').value;
+    const lastName = document.getElementById('signup-last-name').value;
+    const userName = document.getElementById('signup-username').value;
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+
+    setLoading(signupBtnSpinner, signupBtnText, true);
+    signupError.textContent = '';
+
+    try {
+        const response = await fetch(`${API_BASE}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firstName, lastName, userName, email, password })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Signup failed');
+        }
+
+        // Auto login after signup
+        document.getElementById('email').value = email;
+        document.getElementById('password').value = password;
+        document.getElementById('show-login').click();
+        
+        setTimeout(() => {
+            loginForm.dispatchEvent(new Event('submit'));
+        }, 500);
+
+    } catch (err) {
+        signupError.textContent = err.message;
+    } finally {
+        setLoading(signupBtnSpinner, signupBtnText, false);
     }
 }
 
