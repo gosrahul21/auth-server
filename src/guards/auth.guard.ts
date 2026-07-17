@@ -5,17 +5,22 @@ import {
   ExecutionContext,
   UnauthorizedException,
   Inject,
+  CACHE_MANAGER,
 } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Reflector } from '@nestjs/core';
 import { RolesEnum } from 'src/common/enum/roles.enum';
+import { Cache } from 'cache-manager';
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private tokenService: TokenService,
     @Inject(I18nService) private i18nService: I18nService,
     private readonly reflector: Reflector,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     let token =
@@ -32,6 +37,10 @@ export class AuthGuard implements CanActivate {
     let result;
     if (token) {
       try {
+        const cachedSession = await this.cacheManager.get(`session:${token}`);
+        if (!cachedSession) {
+          throw new UnauthorizedException('Session expired or invalid');
+        }
         result = await this.tokenService.validateToken(token);
       } catch (error) {
         throw new UnauthorizedException(
@@ -43,12 +52,16 @@ export class AuthGuard implements CanActivate {
         'roles',
         context.getHandler(),
       ); // authorized roles
+      
+      request.user = result; // Add user payload to request
+      request.decoded = result; // Keep backwards compatibility
+      
       if (
         !roles ||
         roles.length === 0 ||
-        roles.some((role) => result.roles.includes(role))
+        (result.roles && roles.some((role) => result.roles.includes(role)))
       ) {
-        request.decoded = result;
+        return true;
       } else {
         throw new UnauthorizedException(
           this.i18nService.t('validation.ROLES_AUTHORIZATION_FAILED'),
@@ -59,6 +72,5 @@ export class AuthGuard implements CanActivate {
         this.i18nService.t('default.GUARD_TOKEN_INVALID'),
       );
     }
-    return true;
   }
 }

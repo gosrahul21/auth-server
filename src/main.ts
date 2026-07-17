@@ -1,3 +1,8 @@
+import * as buffer from 'buffer';
+if (!buffer.SlowBuffer) {
+  (buffer as any).SlowBuffer = buffer.Buffer;
+}
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';

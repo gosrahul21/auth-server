@@ -1,50 +1,57 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToMany,
+  JoinTable,
+  Unique,
+} from 'typeorm';
 import { Role } from './role.entity';
 import { UserStatus } from 'src/common/enum/user-status.enum';
 
-@Schema()
+@Entity()
+@Unique(['email', 'appId'])
+@Unique(['userName', 'appId'])
 export class User {
-  _id?: Types.ObjectId;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Prop({ required: true, index: true })
-  userName?: string;
+  @Column({ nullable: true })
+  appId: string;
 
-  @Prop({ required: false })
-  firstName?: string;
+  @Column()
+  userName: string;
 
-  @Prop({ required: false })
-  lastName?: string;
+  @Column({ nullable: true })
+  firstName: string;
 
-  @Prop({ required: true, index: true })
-  email?: string;
+  @Column({ nullable: true })
+  lastName: string;
 
-  @Prop({ required: false })
+  @Column()
+  email: string;
+
+  @Column({ nullable: true })
   password?: string;
 
-  @Prop({ required: false, index: true })
+  @Column({ nullable: true })
   googleId?: string;
 
-  @Prop({ required: false })
+  @Column({ nullable: true })
   picture?: string;
 
-  @Prop({
-    type: Array<Types.ObjectId>,
-    ref: Role.name,
-  })
-  roles: Types.ObjectId[];
+  @ManyToMany(() => Role)
+  @JoinTable()
+  roles: Role[];
 
-  @Prop({
-    type: String,
+  @Column({
+    type: 'enum',
     enum: UserStatus,
     default: UserStatus.PENDING,
   })
-  status?: UserStatus;
+  status: UserStatus;
 
-  @Prop({ default: Date.now })
-  createDate?: string;
+  @CreateDateColumn()
+  createDate: Date;
 }
-
-export type UserDocument = Document & User;
-
-export const UserSchema = SchemaFactory.createForClass(User);

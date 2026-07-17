@@ -3,14 +3,15 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  Inject,
+  CACHE_MANAGER,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Types, UpdateQuery } from 'mongoose';
-import { User, UserDocument } from './entity/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
+import { User } from './entity/user.entity';
 import { throwErrorMessage } from '../common/utils/throwErrorMessage';
 import { I18nService } from 'nestjs-i18n';
 import { ConfigService } from '@nestjs/config';
-import { createErrorLog } from '../common/utils/logger';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
@@ -18,199 +19,162 @@ import { GetUserDto } from './dto/get-user.dto';
 import { SortType } from 'src/common/enum/sort.enum';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { ApplicationService } from '../application/application.service';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(User.name)
-    private userModel: Model<UserDocument>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private readonly i18nService: I18nService,
     private readonly tokenService: TokenService,
     private readonly authService: PasswordService,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly applicationService: ApplicationService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async loginWithEmailAndPassword(loginUserDto: LoginUserDto) {
     try {
-      // check if the value is email or userName, search for email if email or passowrd
-      let filterQuery;
-      if (loginUserDto.emailOrUserName.includes('@')) {
-        filterQuery = { email: loginUserDto.emailOrUserName };
-        console.log(filterQuery);
+      const { emailOrUserName, password, appId } = loginUserDto;
+      
+      let filterQuery: any = {};
+      if (emailOrUserName.includes('@')) {
+        filterQuery.email = emailOrUserName;
       } else {
-        filterQuery = { userName: loginUserDto.emailOrUserName };
+        filterQuery.userName = emailOrUserName;
       }
 
-      const user = await this.userModel.findOne(filterQuery).populate('roles');
+      if (appId) {
+        filterQuery.appId = appId;
+      } else {
+        // To handle global app specific / admin users
+        filterQuery.appId = IsNull();
+      }
+
+
+
+      const user = await this.userRepository.findOne({
+        where: filterQuery,
+        relations: { roles: true },
+      });
+
       if (!user) {
-        createErrorLog(
-          `${this.i18nService.t('user.User_not_available')}`,
-          'login-service',
-          filterQuery,
-        );
-        throw new NotFoundException(
-          this.i18nService.t('user.USER_NOT_AVAILABLE'),
-        );
+        throw new NotFoundException(this.i18nService.t('user.USER_NOT_AVAILABLE'));
       }
-      // check if the password is valid
 
-      const isEqual = await this.authService.comparePasswords(
-        loginUserDto.password,
-        user.password,
-      );
+      const isEqual = await this.authService.comparePasswords(password, user.password);
       if (!isEqual) {
-        createErrorLog(
-          `${this.i18nService.t('user.Invalid_pin')}`,
-          'login-service',
-          filterQuery,
-        );
         throw new ForbiddenException(this.i18nService.t('user.Invalid_pin'));
-      } else {
-        const payload = {
-          userId: user._id,
-          email: user.email,
-          userName: user.userName,
-          role: user.roles,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          picture: user.picture,
-        };
-        const { accessToken, refreshToken } =
-          this.tokenService.generateAuthToken(payload);
-        return { accessToken, refreshToken };
       }
+
+      const payload = {
+        userId: user.id,
+        email: user.email,
+        userName: user.userName,
+        role: user.roles,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        picture: user.picture,
+        appId: appId || user.appId,
+      };
+
+      const { accessToken, refreshToken } = await this.tokenService.generateAuthToken(payload);
+      
+      // Store session in Redis
+      await this.cacheManager.set(`session:${accessToken}`, payload, 60 * 60 * 24 * 7); // 7 days
+
+      return { accessToken, refreshToken };
     } catch (error) {
-      createErrorLog(
-        `${this.i18nService.t('user.Error_in_user_login')}`,
-        'login-service',
-        {
-          email: loginUserDto.emailOrUserName,
-          error: error.message,
-        },
-      );
       throwErrorMessage(error);
     }
   }
 
-  async createUser(userData: User): Promise<any> {
+  async createUser(userData: any): Promise<any> {
     try {
-      const user = await this.userModel.findOne({
-        email: userData.email,
+      const userExists = await this.userRepository.findOne({
+        where: { email: userData.email, appId: userData.appId ? userData.appId : IsNull() },
       });
-      if (!user) {
-        // create password hash only if password is provided
-        let password = userData.password;
-        if (password) {
-          password = await this.authService.createPasswordHash(password);
-        }
-        const newUser = new this.userModel({
-          ...userData,
-          password,
-        });
-        await newUser.save();
-        return newUser.toObject();
-      } else {
-        createErrorLog(
-          `${this.i18nService.t('user.User_already_exists')}`,
-          'createUser',
-          {
-            userId: userData._id,
-          },
-        );
+
+      if (userExists) {
         throw new Error(this.i18nService.t('user.USER_EXISTS'));
       }
+
+      let password = userData.password;
+      if (password) {
+        password = await this.authService.createPasswordHash(password);
+      }
+
+      const newUser = this.userRepository.create({
+        ...userData,
+        password,
+      });
+
+      await this.userRepository.save(newUser);
+      return newUser;
     } catch (error) {
-      createErrorLog(
-        `${this.i18nService.t('user.ERROR_CREATE_USER')}`,
-        'createUser',
-        {
-          userId: userData?._id,
-          error: error?.message,
-        },
-      );
       throwErrorMessage(error);
     }
   }
 
-  async getUserById(userId: Types.ObjectId) {
+  async getUserById(userId: string) {
     try {
-      const user = await this.userModel
-        .findById(userId, { password: 0 })
-        .lean();
+      const user = await this.userRepository.findOne({ where: { id: userId } });
       if (!user) throw new Error(this.i18nService.t('user.USER_NOT_AVAILABLE'));
+      delete user.password;
       return user;
     } catch (error) {
-      createErrorLog(
-        `${this.i18nService.t('user.USER_NOT_AVAILABLE')}`,
-        'getUserById',
-        {
-          userId,
-          error: error?.message,
-        },
-      );
       throw error;
     }
   }
 
   async refreshSession(refreshToken: string) {
     try {
-      const result = this.tokenService.validateToken(refreshToken);
-      // give payload, give secret key
+      const result = await this.tokenService.validateToken(refreshToken);
       const payload = {
-        userId: result.userId,
-        email: result.email,
-        role: result.role,
-        firstName: result.firstName,
-        lastName: result.lastName,
-        picture: result.picture,
+        userId: result['userId'],
+        email: result['email'],
+        role: result['role'],
+        firstName: result['firstName'],
+        lastName: result['lastName'],
+        picture: result['picture'],
+        appId: result['appId'],
       };
-      return this.tokenService.generateAuthToken(payload);
+      const tokens = await this.tokenService.generateAuthToken(payload);
+      await this.cacheManager.set(`session:${tokens.accessToken}`, payload, 60 * 60 * 24 * 7);
+      return tokens;
     } catch (error) {
-      createErrorLog(
-        `${this.i18nService.t('user.REFRESH_TOKEN_GEN_FALILED')}`,
-        'createUser',
-        {
-          refreshToken: refreshToken,
-        },
-      );
       throw error;
     }
   }
 
   async verifyUser(token: string) {
     try {
-      // const decodedToken = await this.jwtService.verify(token, { secret: process.env.AUTH_SECRET_KEY! });
+      // First check Redis Cache for session
+      const cachedSession = await this.cacheManager.get(`session:${token}`);
+      if (!cachedSession) {
+         throw new UnauthorizedException('Session expired or invalid');
+      }
+
       const decodedToken = await this.tokenService.validateToken(token);
-      const email = decodedToken.email;
-      const user = this.userModel
-        .findOne({
-          email,
-        })
-        .select(['-password'])
-        .lean();
-      if (!user)
-        throw new NotFoundException(this.i18nService.t('user.NOT_FOUND'));
+      const user = await this.userRepository.findOne({
+        where: { email: decodedToken.email, appId: decodedToken.appId ? decodedToken.appId : IsNull() },
+      });
+
+      if (!user) throw new NotFoundException(this.i18nService.t('user.NOT_FOUND'));
+      delete user.password;
       return user;
     } catch (error) {
-      throw new UnauthorizedException(
-        this.i18nService.t('default.GUARD_TOKEN_INVALID'),
-      );
+      throw new UnauthorizedException(this.i18nService.t('default.GUARD_TOKEN_INVALID'));
     }
   }
 
-  async updateUser(
-    userId: Types.ObjectId,
-    updateUserData: UpdateQuery<UserDocument>,
-  ) {
+  async updateUser(userId: string, updateUserData: any) {
     try {
-      const user = await this.userModel
-        .findByIdAndUpdate(userId, updateUserData, { new: true })
-        .lean();
-      if (!user)
-        throw new NotFoundException(this.i18nService.t('user.USER_NOT_FOUND'));
-
-      delete user.password;
+      await this.userRepository.update(userId, updateUserData);
+      const user = await this.getUserById(userId);
       return user;
     } catch (error) {
       throw error;
@@ -219,81 +183,59 @@ export class AuthService {
 
   async getUsers(getUserDto: GetUserDto) {
     const { page = 1, limit = 5 } = getUserDto;
+    // Basic TypeORM implementation for getUsers
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    const [users, totalCount] = await this.userRepository.findAndCount({
+      skip,
+      take: Number(limit),
+      order: {
+        createDate: 'DESC'
+      }
+    });
 
-    delete getUserDto.limit;
-    delete getUserDto.page;
-    const sortByDate = getUserDto.sortByDate;
-    delete getUserDto.sortByDate;
-    const filterQuery: FilterQuery<UserDocument> = getUserDto;
-    const sortQuery: any = sortByDate
-      ? { createdAt: sortByDate === SortType.ASCENDING ? 1 : -1 }
-      : { createdAt: -1 };
-    const count = await this.userModel.find(filterQuery).countDocuments();
-    const users = await this.userModel.aggregate([
-      {
-        $match: filterQuery,
-      },
-      {
-        $project: {
-          // Exclude the password field from user documents
-          password: 0,
-        },
-      },
-      {
-        $sort: sortQuery,
-      },
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: parseInt(limit as any),
-      },
-    ]);
+    users.forEach(u => delete u.password);
+
     return {
       users,
-      totalCount: count,
+      totalCount,
     };
   }
 
-  async googleLogin(googleUser: any) {
+  async googleLogin(googleUser: any, appId?: string) {
     try {
-      // Check if user exists with this Google ID
-      let user = await this.userModel
-        .findOne({ googleId: googleUser.googleId })
-        .populate('roles');
+      let user = await this.userRepository.findOne({ 
+        where: { googleId: googleUser.googleId, appId: appId ? appId : IsNull() },
+        relations: { roles: true }
+      });
 
-      // If no user found with googleId, check by email
       if (!user) {
-        user = await this.userModel
-          .findOne({ email: googleUser.email })
-          .populate('roles');
+        user = await this.userRepository.findOne({ 
+          where: { email: googleUser.email, appId: appId ? appId : IsNull() },
+          relations: { roles: true }
+        });
 
-        // If user exists with email but no googleId, link the Google account
         if (user) {
           user.googleId = googleUser.googleId;
           user.picture = googleUser.picture;
-          await user.save();
+          await this.userRepository.save(user);
         }
       }
 
-      // If user still doesn't exist, create a new one
       if (!user) {
-        const newUser = new this.userModel({
+        user = this.userRepository.create({
           googleId: googleUser.googleId,
           email: googleUser.email,
           firstName: googleUser.firstName,
           lastName: googleUser.lastName,
-          userName: googleUser.email.split('@')[0], // Generate username from email
+          userName: googleUser.email.split('@')[0],
           picture: googleUser.picture,
-          roles: [],
         });
-        user = await newUser.save();
-        await user.populate('roles');
+        await this.userRepository.save(user);
       }
 
-      // Generate tokens
       const payload = {
-        userId: user._id,
+        userId: user.id,
         email: user.email,
         userName: user.userName,
         role: user.roles,
@@ -301,40 +243,37 @@ export class AuthService {
         lastName: user.lastName,
         picture: user.picture,
       };
-      const { accessToken, refreshToken } =
-        this.tokenService.generateAuthToken(payload);
 
-      return {
-        accessToken,
-        refreshToken,
-      };
+      const { accessToken, refreshToken } = await this.tokenService.generateAuthToken(payload);
+      await this.cacheManager.set(`session:${accessToken}`, payload, 60 * 60 * 24 * 7);
+
+      return { accessToken, refreshToken };
     } catch (error) {
-      createErrorLog(`Error in Google login`, 'googleLogin', {
-        email: googleUser.email,
-        error: error.message,
-      });
       throwErrorMessage(error);
     }
   }
 
-  async googleTokenLogin(idToken: string) {
+  async googleTokenLogin(idToken: string, appId?: string) {
     try {
-      // Verify the Google ID token
       const response = await firstValueFrom(
-        this.httpService.get(
-          `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`,
-        ),
+        this.httpService.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`),
       );
 
       const googleUser = response.data;
+      
+      let clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+      
+      if (appId) {
+        const app = await this.applicationService.getApplicationByAppId(appId);
+        if (app.googleClientId) {
+          clientId = app.googleClientId;
+        }
+      }
 
-      // Verify the token is for your app
-      const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
       if (googleUser.aud !== clientId) {
         throw new UnauthorizedException('Invalid token audience');
       }
 
-      // Extract user information
       const userData = {
         googleId: googleUser.sub,
         email: googleUser.email,
@@ -343,12 +282,8 @@ export class AuthService {
         picture: googleUser.picture || '',
       };
 
-      // Use the existing googleLogin method
-      return this.googleLogin(userData);
+      return this.googleLogin(userData, appId);
     } catch (error) {
-      createErrorLog(`Error in Google token login`, 'googleTokenLogin', {
-        error: error.message,
-      });
       throw new UnauthorizedException('Invalid Google token');
     }
   }

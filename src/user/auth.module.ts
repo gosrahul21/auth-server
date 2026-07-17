@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from './entity/user.entity';
+import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './entity/user.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
-import { Role, RoleSchema } from './entity/role.entity';
+import { Role } from './entity/role.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { RoleService } from './role.service';
@@ -14,24 +14,17 @@ import { TokenService } from './services/token.service';
 import { PasswordService } from './services/password.service';
 import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { ApplicationModule } from '../application/application.module';
 
 @Module({
   imports: [
     CommandModule,
-    MongooseModule.forFeature([
-      {
-        name: User.name,
-        schema: UserSchema,
-      },
-      {
-        name: Role.name,
-        schema: RoleSchema,
-      },
-    ]),
+    TypeOrmModule.forFeature([User, Role]),
     ConfigModule,
     HttpModule,
     JwtModule,
     PassportModule.register({ defaultStrategy: 'google' }),
+    forwardRef(() => ApplicationModule),
   ],
   controllers: [AuthController],
   providers: [
@@ -42,6 +35,6 @@ import { GoogleStrategy } from './strategies/google.strategy';
     PasswordService,
     GoogleStrategy,
   ],
-  exports: [AuthService, RoleService, RoleSeed],
+  exports: [AuthService, RoleService, RoleSeed, TokenService],
 })
 export class AuthModule {}

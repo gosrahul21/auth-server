@@ -1,17 +1,23 @@
-import { Schema as MongooseSchema } from 'mongoose';
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  Unique,
+} from 'typeorm';
 
-@Schema()
+@Entity()
+@Unique(['name', 'appId'])
 export class Role {
-  _id: MongooseSchema.Types.ObjectId;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Prop({ required: true })
+  @Column({ nullable: true })
+  appId: string;
+
+  @Column()
   name: string;
 
-  @Prop({ default: Date.now })
-  createDate: string;
+  @CreateDateColumn()
+  createDate: Date;
 }
-
-export type RoleDocument = Document & Role;
-
-export const RoleSchema = SchemaFactory.createForClass(Role);

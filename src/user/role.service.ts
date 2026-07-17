@@ -1,32 +1,35 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
+import { Role } from './entity/role.entity';
 import { I18nService } from 'nestjs-i18n';
-import { CreateRoleInput } from './dto/create-role.input';
-import { Role, RoleDocument } from './entity/role.entity';
 
 @Injectable()
 export class RoleService {
   constructor(
-    @InjectModel(Role.name)
-    private readonly roleModel: Model<RoleDocument>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
     private readonly i18nService: I18nService,
   ) {}
 
-  /**
-   * Create a new apps
-   * @param createRoleInput
-   * @returns Promise resolving into newly created apps document
-   */
-  async createRoles(createRoleInput: CreateRoleInput): Promise<Role> {
-    const role = await this.roleModel.create(createRoleInput);
-    return role;
+  async createRole(role: Role) {
+    const createdRole = this.roleRepository.create(role);
+    return await this.roleRepository.save(createdRole);
   }
 
-  async getRoleById(roleId: Types.ObjectId) {
-    const role = await this.roleModel.findById(roleId).lean();
-    if (!role)
-      throw new NotFoundException(this.i18nService.t('role.ROLE_NOT_FOUND'));
-    return role;
+  async getRoleByValue(roleValue: string, appId?: string) {
+    const roleDetails = await this.roleRepository.findOne({
+      where: { name: roleValue, appId: appId ? appId : IsNull() },
+    });
+    if (roleDetails) return roleDetails;
+    throw new NotFoundException(this.i18nService.t('role.NOT_FOUND'));
+  }
+
+  async getRoleById(roleId: string) {
+    const roleDetails = await this.roleRepository.findOne({
+      where: { id: roleId },
+    });
+    if (roleDetails) return roleDetails;
+    throw new NotFoundException(this.i18nService.t('role.NOT_FOUND'));
   }
 }

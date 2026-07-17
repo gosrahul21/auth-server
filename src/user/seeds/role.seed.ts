@@ -7,12 +7,12 @@ export class RoleSeed {
   constructor(private readonly roleService: RoleService) {}
 
   @Command({ command: 'create:roles', describe: 'create roles' })
-  async create() {
-    await this.roleService.createRoles({
-      name: 'admin',
-    });
-    await this.roleService.createRoles({
-      name: 'user',
-    });
+  async seedRoles() {
+    await this.roleService.createRole({
+      name: 'User',
+    } as any);
+    await this.roleService.createRole({
+      name: 'Admin',
+    } as any);
   }
 }

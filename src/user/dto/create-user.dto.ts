@@ -57,4 +57,8 @@ export class CreateUserDto {
   })
   @IsStrongPassword()
   password: string;
+
+  @IsOptional()
+  @IsString()
+  appId?: string;
 }
