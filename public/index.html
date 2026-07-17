@@ -176,6 +176,20 @@
                             <div class="spinner hidden"></div>
                         </button>
                     </form>
+                <!-- Security Settings Section -->
+                <div class="google-section">
+                    <h3 class="integration-title">Security Settings</h3>
+                    <form id="origins-config-form" class="google-config-form">
+                        <div class="form-group">
+                            <label>Allowed Origins (Comma separated)</label>
+                            <textarea id="allowed-origins" placeholder="http://localhost:3000, https://my-app.com" rows="3" style="width:100%; padding:0.5rem; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.2); border-radius:4px;"></textarea>
+                            <small style="color: #bbb;">Leave empty to allow all origins.</small>
+                        </div>
+                        <button type="submit" class="btn-primary small-btn" id="save-origins-btn">
+                            <span>Save Origins</span>
+                            <div class="spinner hidden"></div>
+                        </button>
+                    </form>
                 </div>
 
                 <h3 class="integration-title">Integration Code Snippet</h3>

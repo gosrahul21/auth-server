@@ -49,4 +49,15 @@ export class ApplicationController {
     const userId = req.user.userId || req.user.id;
     return this.appService.updateGoogleOAuth(appId, userId, googleClientId, googleClientSecret);
   }
+
+  @Put(':appId/origins')
+  @UseGuards(AuthGuard)
+  async updateAllowedOrigins(
+    @Req() req: any,
+    @Param('appId') appId: string,
+    @Body('allowedOrigins') allowedOrigins: string[],
+  ) {
+    const userId = req.user.userId || req.user.id;
+    return this.appService.updateAllowedOrigins(appId, userId, allowedOrigins || []);
+  }
 }

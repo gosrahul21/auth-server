@@ -20,6 +20,10 @@ const googleConfigForm = document.getElementById('google-config-form');
 const saveGoogleBtnSpinner = document.querySelector('#save-google-config-btn .spinner');
 const saveGoogleBtnText = document.querySelector('#save-google-config-btn span');
 
+const originsConfigForm = document.getElementById('origins-config-form');
+const saveOriginsBtnSpinner = document.querySelector('#save-origins-btn .spinner');
+const saveOriginsBtnText = document.querySelector('#save-origins-btn span');
+
 const loginBtnSpinner = document.querySelector('#login-btn .spinner');
 const loginBtnText = document.querySelector('#login-btn span');
 const loginError = document.getElementById('login-error');
@@ -43,6 +47,7 @@ logoutBtn.addEventListener('click', handleLogout);
 deleteAppBtn.addEventListener('click', handleDeleteApp);
 addRoleForm.addEventListener('submit', handleAddRole);
 googleConfigForm.addEventListener('submit', handleSaveGoogleConfig);
+originsConfigForm.addEventListener('submit', handleSaveOrigins);
 
 document.getElementById('show-signup').addEventListener('click', (e) => {
     e.preventDefault();
@@ -217,6 +222,7 @@ function displayAppDetails(app) {
     
     document.getElementById('google-client-id').value = app.googleClientId || '';
     document.getElementById('google-client-secret').value = app.googleClientSecret || '';
+    document.getElementById('allowed-origins').value = app.allowedOrigins ? app.allowedOrigins.join(', ') : '';
     
     const jwksLink = document.getElementById('display-jwks');
     jwksLink.href = jwksUrl;
@@ -293,6 +299,35 @@ async function handleSaveGoogleConfig(e) {
         alert(err.message);
     } finally {
         setLoading(saveGoogleBtnSpinner, saveGoogleBtnText, false);
+    }
+}
+
+async function handleSaveOrigins(e) {
+    e.preventDefault();
+    if (!currentAppId) return;
+
+    const originsInput = document.getElementById('allowed-origins').value;
+    const origins = originsInput.split(',').map(o => o.trim()).filter(o => o.length > 0);
+
+    setLoading(saveOriginsBtnSpinner, saveOriginsBtnText, true);
+
+    try {
+        const res = await fetch(`${API_BASE}/applications/${currentAppId}/origins`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${currentToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ allowedOrigins: origins })
+        });
+        if (!res.ok) throw new Error('Failed to update Allowed Origins');
+        
+        const data = await res.json();
+        alert(data.message);
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        setLoading(saveOriginsBtnSpinner, saveOriginsBtnText, false);
     }
 }
 

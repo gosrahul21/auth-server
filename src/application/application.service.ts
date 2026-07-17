@@ -129,4 +129,14 @@ export class ApplicationService {
     await this.appRepository.save(app);
     return { message: 'Google OAuth configuration updated successfully' };
   }
+
+  async updateAllowedOrigins(appId: string, userId: string, allowedOrigins: string[]) {
+    const app = await this.getApplicationByAppId(appId);
+    if (app.userId !== userId) {
+      throw new UnauthorizedException('You can only update applications you own');
+    }
+    app.allowedOrigins = allowedOrigins;
+    await this.appRepository.save(app);
+    return { message: 'Allowed origins updated successfully', allowedOrigins: app.allowedOrigins };
+  }
 }
