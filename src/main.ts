@@ -26,7 +26,7 @@ async function bootstrap() {
   app.enableCors({
     origin: async (origin, callback) => {
       // Always allow local UI and main dashboard
-      if (!origin || origin === 'http://localhost:3000' || origin === 'https://chat-agent-ui-beryl.vercel.app' || origin === 'http://localhost:5173') {
+      if (!origin) {
         return callback(null, true);
       }
       

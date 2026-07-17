@@ -2,7 +2,6 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ApplicationService } from '../application/application.service';
 
