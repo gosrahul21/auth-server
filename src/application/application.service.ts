@@ -139,4 +139,14 @@ export class ApplicationService {
     await this.appRepository.save(app);
     return { message: 'Allowed origins updated successfully', allowedOrigins: app.allowedOrigins };
   }
+
+  async isOriginGloballyAllowed(origin: string): Promise<boolean> {
+    const apps = await this.appRepository.find();
+    for (const app of apps) {
+      if (app.allowedOrigins && app.allowedOrigins.includes(origin)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

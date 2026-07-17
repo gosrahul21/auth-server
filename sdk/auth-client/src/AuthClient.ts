@@ -45,7 +45,7 @@ export class AuthClient {
     const response = await fetch(`${this.serverUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emailOrUserName, password })
+      body: JSON.stringify({ emailOrUserName, password, appId: this.appId })
     });
 
     const data = await response.json();
