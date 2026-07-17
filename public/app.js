@@ -16,6 +16,10 @@ const rolesContainer = document.getElementById('roles-container');
 const addRoleBtnSpinner = document.querySelector('#add-role-btn .spinner');
 const addRoleBtnText = document.querySelector('#add-role-btn span');
 
+const googleConfigForm = document.getElementById('google-config-form');
+const saveGoogleBtnSpinner = document.querySelector('#save-google-config-btn .spinner');
+const saveGoogleBtnText = document.querySelector('#save-google-config-btn span');
+
 const loginBtnSpinner = document.querySelector('#login-btn .spinner');
 const loginBtnText = document.querySelector('#login-btn span');
 const loginError = document.getElementById('login-error');
@@ -38,6 +42,7 @@ createAppForm.addEventListener('submit', handleCreateApp);
 logoutBtn.addEventListener('click', handleLogout);
 deleteAppBtn.addEventListener('click', handleDeleteApp);
 addRoleForm.addEventListener('submit', handleAddRole);
+googleConfigForm.addEventListener('submit', handleSaveGoogleConfig);
 
 document.getElementById('show-signup').addEventListener('click', (e) => {
     e.preventDefault();
@@ -210,6 +215,9 @@ function displayAppDetails(app) {
     document.getElementById('display-app-id').textContent = appId;
     document.getElementById('display-public-key').textContent = publicKey;
     
+    document.getElementById('google-client-id').value = app.googleClientId || '';
+    document.getElementById('google-client-secret').value = app.googleClientSecret || '';
+    
     const jwksLink = document.getElementById('display-jwks');
     jwksLink.href = jwksUrl;
     jwksLink.textContent = jwksUrl;
@@ -253,6 +261,38 @@ async function loadRoles(appId) {
         });
     } catch (err) {
         rolesContainer.innerHTML = `<div class="error-msg">${err.message}</div>`;
+    }
+}
+
+async function handleSaveGoogleConfig(e) {
+    e.preventDefault();
+    if (!currentAppId) return;
+
+    const clientId = document.getElementById('google-client-id').value;
+    const clientSecret = document.getElementById('google-client-secret').value;
+
+    setLoading(saveGoogleBtnSpinner, saveGoogleBtnText, true);
+
+    try {
+        const res = await fetch(`${API_BASE}/applications/${currentAppId}/google-oauth`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${currentToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                googleClientId: clientId,
+                googleClientSecret: clientSecret
+            })
+        });
+        if (!res.ok) throw new Error('Failed to update Google Config');
+        
+        const data = await res.json();
+        alert(data.message);
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        setLoading(saveGoogleBtnSpinner, saveGoogleBtnText, false);
     }
 }
 

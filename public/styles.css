@@ -299,12 +299,18 @@ input:focus {
 }
 
 /* Roles Management */
-.roles-section {
+.roles-section, .google-section {
     margin-top: 24px;
     background: rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 8px;
     padding: 16px;
+}
+
+.google-config-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .roles-container {

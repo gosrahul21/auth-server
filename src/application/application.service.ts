@@ -62,6 +62,15 @@ export class ApplicationService {
     return app;
   }
 
+  async getPublicConfig(appId: string) {
+    const app = await this.getApplicationByAppId(appId);
+    return {
+      appId: app.appId,
+      name: app.name,
+      googleClientId: app.googleClientId
+    };
+  }
+
   async deleteApplication(appId: string, userId: string) {
     const app = await this.getApplicationByAppId(appId);
     if (app.userId !== userId) {
@@ -108,5 +117,16 @@ export class ApplicationService {
       throw new UnauthorizedException('Origin not allowed for this application');
     }
     return app;
+  }
+
+  async updateGoogleOAuth(appId: string, userId: string, googleClientId: string, googleClientSecret: string) {
+    const app = await this.getApplicationByAppId(appId);
+    if (app.userId !== userId) {
+      throw new UnauthorizedException('You can only update applications you own');
+    }
+    app.googleClientId = googleClientId;
+    app.googleClientSecret = googleClientSecret;
+    await this.appRepository.save(app);
+    return { message: 'Google OAuth configuration updated successfully' };
   }
 }

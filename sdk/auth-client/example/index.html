@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth SDK Example</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 1rem; }
+        input { padding: 0.5rem; width: 100%; box-sizing: border-box; }
+        button { padding: 0.5rem 1rem; cursor: pointer; }
+        #app-content { display: none; margin-top: 2rem; padding: 1rem; background: #f0f0f0; }
+        #auth-container { border: 1px solid #ccc; padding: 1rem; border-radius: 4px; }
+        .divider { text-align: center; margin: 1rem 0; color: #888; }
+    </style>
+</head>
+<body>
+
+    <h1>My Awesome App</h1>
+
+    <div id="auth-container">
+        <h2>Login</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <input type="email" id="email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="password" placeholder="Password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+
+        <div class="divider">OR</div>
+        
+        <!-- This is where the SDK will inject the Google Button -->
+        <div id="google-btn-container" style="display: flex; justify-content: center;"></div>
+    </div>
+
+    <div id="app-content">
+        <h2>Welcome inside!</h2>
+        <p>Your Access Token:</p>
+        <code id="token-display" style="word-break: break-all; font-size: 0.8rem;"></code>
+        <br><br>
+        <button id="logout-btn">Logout</button>
+    </div>
+
+    <!-- For demo purposes, we will load the compiled index.js as a script -->
+    <!-- In a real app with Webpack/Vite, you'd do: import { AuthClient } from '@your-org/auth-client' -->
+    <script>
+        // Stubbing exports object for the compiled CommonJS script to attach to in the browser
+        var exports = {};
+    </script>
+    <script src="../dist/AuthClient.js"></script>
+    <script src="../dist/index.js"></script>
+    
+    <script>
+        // 1. Initialize the SDK
+        const auth = new exports.AuthClient({
+            appId: 'YOUR_APP_ID_HERE', // Change this!
+            serverUrl: 'http://localhost:3000'
+        });
+
+        // UI Elements
+        const authContainer = document.getElementById('auth-container');
+        const appContent = document.getElementById('app-content');
+        const tokenDisplay = document.getElementById('token-display');
+
+        function checkAuth() {
+            const token = auth.getToken();
+            if (token) {
+                authContainer.style.display = 'none';
+                appContent.style.display = 'block';
+                tokenDisplay.textContent = token;
+            } else {
+                authContainer.style.display = 'block';
+                appContent.style.display = 'none';
+            }
+        }
+
+        // 2. Setup Google Login via SDK
+        auth.renderGoogleButton('#google-btn-container', {
+            onSuccess: (token) => {
+                alert("Successfully logged in with Google!");
+                checkAuth();
+            },
+            onError: (err) => {
+                alert("Google Error: " + err.message);
+            }
+        });
+
+        // 3. Setup Standard Login via SDK
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                await auth.login(email, password);
+                alert("Successfully logged in!");
+                checkAuth();
+            } catch (err) {
+                alert("Login Error: " + err.message);
+            }
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            auth.logout();
+            checkAuth();
+        });
+
+        // Check auth on load
+        checkAuth();
+    </script>
+</body>
+</html>

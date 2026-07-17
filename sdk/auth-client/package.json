@@ -1,0 +1,13 @@
+{
+  "name": "@my-org/auth-client",
+  "version": "1.0.0",
+  "description": "Frontend SDK for Auth Server",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

@@ -159,19 +159,39 @@
                     </form>
                 </div>
 
+                <!-- Google Integration Section -->
+                <div class="google-section">
+                    <h3 class="integration-title">Google Integration</h3>
+                    <form id="google-config-form" class="google-config-form">
+                        <div class="form-group">
+                            <label>Google Client ID</label>
+                            <input type="text" id="google-client-id" placeholder="Enter your Google Client ID">
+                        </div>
+                        <div class="form-group">
+                            <label>Google Client Secret</label>
+                            <input type="password" id="google-client-secret" placeholder="Enter your Google Client Secret">
+                        </div>
+                        <button type="submit" class="btn-primary small-btn" id="save-google-config-btn">
+                            <span>Save Google Config</span>
+                            <div class="spinner hidden"></div>
+                        </button>
+                    </form>
+                </div>
+
                 <h3 class="integration-title">Integration Code Snippet</h3>
                 <div class="tabs">
                     <button class="tab active" data-target="node">Node.js</button>
                     <button class="tab" data-target="python">Python</button>
+                    <button class="tab" data-target="google-login">Sign in with Google</button>
                 </div>
                 
-                <div class="tab-content active" id="tab-node">
-                    <div class="copy-box multi-line code-snippet">
-<pre><code>const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
+                <div class="code-blocks">
+                    <div id="node" class="code-block active">
+                        <pre><code>const jwksClient = require('jwks-rsa');
+const jwt = require('jsonwebtoken');
 
 const client = jwksClient({
-  jwksUri: '<span class="dyn-jwks">http://localhost:3000/applications/.../.well-known/jwks.json</span>'
+  jwksUri: '<span class="dyn-jwks"></span>'
 });
 
 function getKey(header, callback){
@@ -179,36 +199,44 @@ function getKey(header, callback){
     const signingKey = key.publicKey || key.rsaPublicKey;
     callback(null, signingKey);
   });
-}
-
-// Verify a token
-jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, decoded) => {
-  console.log(decoded);
-});
-</code></pre>
-                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+}</code></pre>
                     </div>
-                </div>
-                
-                <div class="tab-content" id="tab-python">
-                    <div class="copy-box multi-line code-snippet">
-<pre><code>import jwt
+                    <div id="python" class="code-block">
+                        <pre><code>import jwt
 from jwt import PyJWKClient
 
-url = "<span class="dyn-jwks">http://localhost:3000/applications/.../.well-known/jwks.json</span>"
+url = "<span class="dyn-jwks"></span>"
 jwks_client = PyJWKClient(url)
 
-# Verify a token
-signing_key = jwks_client.get_signing_key_from_jwt(token)
-data = jwt.decode(
-    token,
-    signing_key.key,
-    algorithms=["RS256"],
-    audience="my_audience",
-)
-print(data)
-</code></pre>
-                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+def verify_token(token):
+    signing_key = jwks_client.get_signing_key_from_jwt(token)
+    data = jwt.decode(
+        token,
+        signing_key.key,
+        algorithms=["RS256"]
+    )
+    return data</code></pre>
+                    </div>
+                    <div id="google-login" class="code-block">
+                        <pre><code>&lt;!-- Example HTML integration for Sign In with Google --&gt;
+&lt;html&gt;
+  &lt;body&gt;
+    &lt;script src="https://accounts.google.com/gsi/client" async defer&gt;&lt;/script&gt;
+    &lt;div id="g_id_onload"
+         data-client_id="YOUR_GOOGLE_CLIENT_ID"
+         data-login_uri="YOUR_BACKEND_API/auth/google/token"
+         data-auto_prompt="false"&gt;
+    &lt;/div&gt;
+    &lt;div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular"
+         data-logo_alignment="left"&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
                     </div>
                 </div>
 
